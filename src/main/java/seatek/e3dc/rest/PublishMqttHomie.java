@@ -10,6 +10,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.text.CaseUtils;
 import org.apache.logging.log4j.util.Strings;
+import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -25,7 +26,7 @@ import seatek.e3dc.rest.homie.HomieNode.HomieNodeBuilder;
 
 @Slf4j
 @Component
-public class PublishMqttHomie {
+public class PublishMqttHomie implements MqttPublisher{
 	private static final String HOMIE_E3DC = "homie/e3dc";
 
 	private static final String propertyStates = "states";
@@ -34,7 +35,7 @@ public class PublishMqttHomie {
 
 	private static final String nodePv = "pv";
 
-	private static final String propertyCharge = "charge";
+	private static final String propertyCharge = "capacity";
 
 	private static final String propertyPower = "power";
 
@@ -45,8 +46,8 @@ public class PublishMqttHomie {
 	private static final String nodeBattery = "battery";
 
 	private static final String nodeLine = "line";
-
-	String intType = "int";
+	private int reconnectCounter=0;
+	String intType = "integer";
 	@Autowired
 	MqttClient session;
 
@@ -62,6 +63,8 @@ public class PublishMqttHomie {
 
 	private HomieProperties homePowerProperty;
 
+	private WallboxMqttListener wallboxMqttListener;
+
 	/*
 	 * (non-Javadoc)
 	 *
@@ -76,7 +79,7 @@ public class PublishMqttHomie {
 		batteryPowerProperty = HomieProperties.builder().name("Battery Power").unit("W").datatype(intType).settable(false)
 				.build();
 
-		batteryChargeProperty = HomieProperties.builder().name("Battery Charge").unit("%").datatype(intType).settable(false)
+		batteryChargeProperty = HomieProperties.builder().name("Battery Capacity").unit("%").datatype(intType).settable(false)
 				.build();
 
 	
@@ -103,28 +106,28 @@ public class PublishMqttHomie {
 				.build();
 		//@formatter:on
 
-		publish(client, topicName("$homie"), "3.0", true);
+		publish(topicName("$homie"), "3.0", true);
 
-		publish(client, topicName("$name"), config.getName(), true);
-		publish(client, topicName("$state"), "ready", true);
-		publish(client, topicName("$nodes"), Strings.join(config.getNodes().keySet(), ','), true);
+		publish(topicName("$name"), config.getName(), true);
+		publish(topicName("$state"), "ready", true);
+		publish(topicName("$nodes"), Strings.join(config.getNodes().keySet(), ','), true);
 
 		for (Entry<String, HomieNode> n : config.getNodes().entrySet()) {
 
 			HomieNode node = n.getValue();
-			publish(client, topicName(n.getKey(), "$name"), node.getName(), true);
-			publish(client, topicName(n.getKey(), "$properties"), Strings.join(node.getProperties().keySet(), ','),
-					true);
+			publish(topicName(n.getKey(), "$name"), node.getName(), true);
+			publish(topicName(n.getKey(), "$properties"), Strings.join(node.getProperties().keySet(), ','), true);
 
 			for (Entry<String, HomieProperties> p : node.getProperties().entrySet()) {
 				HomieProperties properties = p.getValue();
-				publish(client, topicName(n.getKey(), p.getKey(), "$name"), properties.getName(), true);
-				publish(client, topicName(n.getKey(), p.getKey(), "$datatype"), properties.getDatatype(), true);
-				publish(client, topicName(n.getKey(), p.getKey(), "$settable"), String.valueOf(properties.isSettable()),
-						true);
+				publish(topicName(n.getKey(), p.getKey(), "$name"), properties.getName(), true);
+				publish(topicName(n.getKey(), p.getKey(), "$datatype"), properties.getDatatype(), true);
+				publish(topicName(n.getKey(), p.getKey(), "$settable"), String.valueOf(properties.isSettable()), true);
+				if(properties.isSettable()) {
+					this.session.subscribe(topicName(n.getKey(), p.getKey()),wallboxMqttListener);
+				}
 				properties.getUnit().ifPresent(unit->
-					publish(client, topicName(n.getKey(), p.getKey(), "$unit"), unit,
-						true));
+					publish(topicName(n.getKey(), p.getKey(), "$unit"), unit, true));
 			}
 		}
 
@@ -236,7 +239,7 @@ public class PublishMqttHomie {
 		return String.format(HOMIE_E3DC+"/%s/%s", node, key);
 	}
 
-	private void publish(MqttClient client, String topicName, String value, boolean retain)
+	private void publish(String topicName, String value, boolean retain)
 			 {
 		MqttMessage message;
 		try {
@@ -247,9 +250,18 @@ public class PublishMqttHomie {
 			throw new RuntimeException(e);
 		}
 		try {
-			client.publish(topicName, message);
+			session.publish(topicName, message);
 		} catch (MqttException e) {
-			throw new RuntimeException(e);
+			reconnectCounter++;
+			if(reconnectCounter>3)
+				throw new RuntimeException(e);
+			try {
+				session.reconnect();
+				reconnectCounter=0;
+				publish(topicName, value, retain);
+			} catch (MqttException e1) {
+				throw new RuntimeException(e);
+			}
 		}
 
 	}
@@ -258,14 +270,16 @@ public class PublishMqttHomie {
 	 * (non-Javadoc)
 	 *
 	 */
-	public void send(final Measurement.Field type, final Number value) throws MqttException {
+	@Override
+	public void send(final Measurement.Field type, final int value) {
 
-		publish(session, toTopicName(type), value.toString(), false);
+		publish(toTopicName(type), String.valueOf(value), false);
 	}
 	
-	public void send(final EnumSet<WallboxState> type) throws MqttException {
+	@Override
+	public void send(final EnumSet<WallboxState> type)  {
 		for(WallboxState s : WallboxState.values()) {
-		publish(session, toTopicName(s), String.valueOf(type.contains(s)), false);
+		publish(toTopicName(s), String.valueOf(type.contains(s)), false);
 		}
 	}
 

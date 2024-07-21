@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     21.08.2021 21:28:20                                                        
+
+     TVSimulator    
+     description
+                   
+     stefan                                                                
+     ====================================================================== -->
+<project name="e3dc2Mqtt" default="default">
+	<description>
+            description
+    </description>
+<property name="tag" value="hp.munich:5000/e3dc2mqtt"/>
+
+	<!-- = = = = = = = = = = = = = = = = =
+          macrodef: docker          
+         = = = = = = = = = = = = = = = = = -->
+	<macrodef name="docker-pull">
+		<attribute name="image" />
+
+		<sequential>
+			<exec executable="docker">
+				<arg value="pull">
+				</arg>
+				<arg value="@{image}">
+				</arg>
+			</exec>
+		</sequential>
+	</macrodef>
+
+
+	<!-- ================================= 
+          target: default              
+         ================================= -->
+	<target name="default" depends="pull-base,push" description="description">
+
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: depends                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="pull-base">
+		<docker-pull image="adoptopenjdk/openjdk11:slim" />
+
+
+	</target>
+
+	<target name="build">
+		<exec executable="docker">
+			<arg value="build" />
+			<arg value="-t" />
+			<arg value="tvsimulator" />
+			<arg value="." />
+		</exec>
+	</target>
+	<target name="push" depends="build">
+		<exec executable="docker">
+			<arg value="tag" />
+			<arg value="tvsimulator" />
+			<arg value="${tag}" />
+		</exec>
+		<exec executable="docker">
+			<arg value="push" />
+			<arg value="${tag}" />
+		</exec>
+	</target>
+</project>

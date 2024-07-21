@@ -45,6 +45,10 @@ public class ModbusRepository {
 		int ref = 40072;
 		return readInt(ref, 1);
 	}
+	
+	public void setChargeCancelled(boolean state) {
+		writeCoil(40089, state);
+	}
 
 	private int readInt(final int ref, final int count) {
 		Register[] mulReg;
@@ -55,6 +59,15 @@ public class ModbusRepository {
 		}
 
 		return mulReg[0].getValue();
+	}
+	
+	private void writeCoil(final int ref, boolean state) {
+		try {
+			master.writeCoil(ref, state);
+		} catch (ModbusException e) {
+			throw new RuntimeException(e);
+		}
+
 	}
 
 	public int getSolarleistung() {

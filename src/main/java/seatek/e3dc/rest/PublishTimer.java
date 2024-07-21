@@ -1,5 +1,7 @@
 package seatek.e3dc.rest;
 
+import java.util.List;
+
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,16 +16,16 @@ public class PublishTimer {
 	@Autowired
 	ModbusRepository repository;
 	@Autowired
-	private PublishMqttHomie mqttPublisher;
+	private List<MqttPublisher> mqttPublisher;
 
 	@Scheduled(fixedRate = 10000)
 	public void readAndPublish() throws MqttException {
 		for(Field field : Field.values()) {
 		int value = repository.getValue(field);
-		mqttPublisher.send(field, value);
+		mqttPublisher.forEach(m->  m.send(field, value));
 		log.debug("published field "+field+" with value "+value);
 	}
-	mqttPublisher.send(repository.getWallboxStates().get(0));
+	mqttPublisher.forEach(m->  m.send(repository.getWallboxStates().get(0)));
 	
 	}
 }

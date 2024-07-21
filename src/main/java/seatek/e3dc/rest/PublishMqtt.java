@@ -2,6 +2,7 @@ package seatek.e3dc.rest;
 
 import java.io.UnsupportedEncodingException;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Map;
 
@@ -19,7 +20,7 @@ import seatek.e3dc.rest.Measurement.Field;
 
 @Slf4j
 @Component
-public class PublishMqtt {
+public class PublishMqtt  implements MqttPublisher {
 	@Autowired
 	MqttClient session;
 
@@ -49,7 +50,7 @@ public class PublishMqtt {
 	 * (non-Javadoc)
 	 *
 	 */
-	public void send(final Measurement.Field type, final int value) throws MqttException {
+	public void send(final Measurement.Field type, final int value)  {
 
 		MqttMessage message;
 		try {
@@ -61,8 +62,23 @@ public class PublishMqtt {
 		try {
 			session.publish(this.destination.get(type), message);
 		} catch (MqttException e) {
-			session.reconnect();
+			try {
+				session.reconnect();
+			} catch (MqttException e1) {
+				throw new RuntimeException(e1);
+			}
 		} 
 	}
+	@Override
+	public void send(final EnumSet<WallboxState> type)  {
+		//for(WallboxState s : WallboxState.values()) {
+	//	publish(toTopicName(s), String.valueOf(type.contains(s)), false);
+		//}
+	}
+
+/*	private String toTopicName(WallboxState type) {
+		
+		return String.format(HOMIE_E3DC + "/wallbox/%s", toPropertyKey(type));
+	}*/
 
 }

@@ -23,6 +23,7 @@ public class MqttProvider {
 	@Value("${mqtt.client.id:e3dc}")
 	private String clientId;
 
+	
 
 	@PostConstruct
 	public void init() throws MqttException  {
@@ -46,8 +47,8 @@ public class MqttProvider {
 		try {
 			session.close();
 		} catch (MqttException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new RuntimeException(e);
+			
 		}
 		
 	}
