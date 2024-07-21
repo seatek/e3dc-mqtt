@@ -1,8 +1,8 @@
 buildscript {
 		dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.2.1.RELEASE")
+        	classpath("org.springframework.boot:spring-boot-gradle-plugin:2.2.1.RELEASE")
 
-				classpath 'se.transmode.gradle:gradle-docker:1.2'
+			classpath 'se.transmode.gradle:gradle-docker:1.2'
 		}
 
 	repositories {
@@ -31,19 +31,17 @@ repositories {
 
 
 dependencies {
-		compile("org.springframework.boot:spring-boot-starter-web")
-		compile("org.springframework.boot:spring-boot-starter-actuator")
-compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.3'
+	compile("org.springframework.boot:spring-boot-starter-web")
+	compile("org.springframework.boot:spring-boot-starter-actuator")
+	compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.3'
 
-compile group: 'org.apache.activemq', name: 'activemq-client', version: '5.15.7'
-
-compileOnly 'org.projectlombok:lombok:1.18.2'
+	compile group: 'org.eclipse.paho', name: 'org.eclipse.paho.client.mqttv3', version: '1.2.0'
+	compileOnly 'org.projectlombok:lombok:1.18.2'
 
 	annotationProcessor "org.projectlombok:lombok:1.18.2"
-		//compile("org.springframework.boot:spring-boot-starter-data-rest")
 
-compile group: 'com.ghgande', name: 'j2mod', version: '2.5.0'
-		testCompile 'junit:junit'
+	compile group: 'com.ghgande', name: 'j2mod', version: '2.5.0'
+	testCompile 'junit:junit'
 }
 
 docker {

@@ -8,10 +8,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ComponentScan
 @EnableAutoConfiguration
 @EnableScheduling
-public class Application {
+public class E3dcToMqtt {
 
 	public static void main(final String[] args) {
-		SpringApplication.run(Application.class, args);
+		SpringApplication.run(E3dcToMqtt.class, args);
 	}
 
 
