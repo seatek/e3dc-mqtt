@@ -1,5 +1,10 @@
 package seatek.e3dc.rest;
 
+import java.util.ArrayList;
+import static seatek.e3dc.rest.Measurement.Field.*;
+import java.util.EnumSet;
+import java.util.List;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
@@ -63,15 +68,47 @@ public class ModbusRepository {
 	public int getBatteriekapazität() {
 		return readInt(40083, 1);
 	}
+	
+	public int getWallboxleistung() {
+		return readInt(WALLBOX_POWER.getModbusField(), 1);
+	}
+	
+	public int getWallboxsolarleistung() {
+		return readInt(WALLBOX_SOLAR_POWER.getModbusField(), 1);
+	}
 
 	public int getNetzleistung() {
 		int possiblyNegative = readInt(40074, 1);
 		int adjusted = convertNegativeShort(possiblyNegative);
 		return adjusted;
 	}
+	public List<EnumSet<WallboxState>> getWallboxStates(){
+		List<EnumSet<WallboxState>> list = new ArrayList<>();
+		for(int i=40088;i<40096;i++) {
+			
+			EnumSet<WallboxState> states = getWallboxStates(i);
+			if(states.contains(WallboxState.AVAILABLE))
+			list.add(states);
+			
+		}
+		return list;
+	}
+	
+
+	private EnumSet<WallboxState> getWallboxStates(int ref) {
+		int mask = readInt(ref,1);
+		
+		List<WallboxState> list = new ArrayList<WallboxState>();
+		for (WallboxState value : WallboxState.values()) {
+		  if ( value.matchesBit((mask & (1 << value.getBit())))) {
+		    list.add(value);
+		  } 
+		}
+		return EnumSet.copyOf(list);
+	}
 
 	private int convertNegativeShort(int possiblyNegative) {
-		if ((possiblyNegative & 0xF000) > 0) {
+		if ((possiblyNegative & 0x8000) > 0) {
 			possiblyNegative ^= 0xFFFF;
 			possiblyNegative++;
 			possiblyNegative *= -1;
@@ -89,7 +126,7 @@ public class ModbusRepository {
 	public int getValue(Field powerConsumption) {
 		int possiblyNegative = readInt(powerConsumption.getModbusField(), 1);
 		int adjusted = possiblyNegative;
-		if(powerConsumption==Field.LINE_POWER)
+		if(EnumSet.of(Field.LINE_POWER,Field.BATTERY_POWER).contains(powerConsumption))
 			adjusted = convertNegativeShort(possiblyNegative);
 		return adjusted;
 	}

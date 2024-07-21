@@ -14,7 +14,7 @@ public class PublishTimer {
 	@Autowired
 	ModbusRepository repository;
 	@Autowired
-	private PublishMqtt mqttPublisher;
+	private PublishMqttHomie mqttPublisher;
 
 	@Scheduled(fixedRate = 10000)
 	public void readAndPublish() throws MqttException {
@@ -22,5 +22,8 @@ public class PublishTimer {
 		int value = repository.getValue(field);
 		mqttPublisher.send(field, value);
 		log.debug("published field "+field+" with value "+value);
-	}}
+	}
+	mqttPublisher.send(repository.getWallboxStates().get(0));
+	
+	}
 }
